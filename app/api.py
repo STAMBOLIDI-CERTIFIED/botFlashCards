@@ -88,7 +88,7 @@ async def series_for(session: AsyncSession, user_id: int, days: int, since: date
     ).all()
     by_day = {str(d): (c, ok or 0) for d, c, ok in rows}
     out = []
-    for i in range(days):b
+    for i in range(days):
         day = start + timedelta(days=i)
         count, ok = by_day.get(day.isoformat(), (0, 0))
         out.append(

@@ -2,11 +2,14 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _load_dotenv() -> None:
+    """Загрузить .env как ЛОКАЛЬНЫЙ фолбэк.
+
+    os.environ.setdefault не перезаписывает реальное окружение процесса,
+    поэтому переменные, заданные хостом (bothost/Docker), всегда важнее .env.
+    """
     env_path = BASE_DIR / ".env"
     if not env_path.exists():
         return
@@ -19,6 +22,9 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
+
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 APP_NAME = "Lingua Flow"
 PORT = int(os.getenv("PORT", "8000"))
