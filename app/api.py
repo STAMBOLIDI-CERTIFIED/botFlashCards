@@ -8,6 +8,7 @@ import time
 from datetime import date, datetime, timedelta
 from urllib.parse import parse_qsl
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import extract, func, select
@@ -449,6 +450,86 @@ class CardIn(BaseModel):
     hint: str = ""
 
 
+DICT_API = "https://api.dictionaryapi.dev/api/v2/entries/en/"
+WIKTIONARY_API = "https://en.wiktionary.org/api/rest_v1/page/definition/"
+
+
+def _strip_html(text: str) -> str:
+    """HTML из Wiktionary -> чистый текст одной строкой."""
+    import html as html_mod
+    import re
+
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html_mod.unescape(text)
+    return re.sub(r"\s+", " ", text).strip(" ;.")
+
+
+async def _wiktionary_hint(client, word: str) -> str:
+    """Определение на английском из Wiktionary (стабильный фолбэк)."""
+    try:
+        resp = await client.get(WIKTIONARY_API + word, headers={"User-Agent": "LinguaFlow/1.0"})
+        if resp.status_code != 200:
+            return ""
+        data = resp.json()
+    except (httpx.HTTPError, ValueError):
+        return ""
+    for entry in data.get("en") or []:
+        for d in entry.get("definitions") or []:
+            clean = _strip_html(d.get("definition") or "")
+            if clean:
+                return clean
+    return ""
+
+
+async def _dictionary_hint(word: str) -> tuple[str, str]:
+    """Генерация подсказки на английском.
+
+    1. dictionaryapi.dev — живой пример предложения (если API отвечает).
+    2. Wiktionary — определение (стабильный фолбэк).
+    Возвращает (текст, источник); текст пустой, если не найдено.
+    """
+    word = word.strip().lower()
+    if not word or len(word) > 60 or " " in word:
+        return "", ""
+
+    async with httpx.AsyncClient(timeout=3.5, follow_redirects=True) as client:
+        # 1) пример из словаря
+        try:
+            resp = await client.get(DICT_API + word, headers={"User-Agent": "LinguaFlow/1.0"})
+            if resp.status_code == 200:
+                entries = resp.json()
+                example, definition = "", ""
+                for entry in entries if isinstance(entries, list) else []:
+                    for meaning in entry.get("meanings") or []:
+                        for d in meaning.get("definitions") or []:
+                            ex = (d.get("example") or "").strip()
+                            dfn = (d.get("definition") or "").strip()
+                            if ex and not example:
+                                example = ex
+                            if dfn and not definition:
+                                definition = dfn
+                        if example:
+                            break
+                    if example:
+                        break
+                if example:
+                    return example, "dictionary"
+                if definition:
+                    return _strip_html(definition), "dictionary"
+        except (httpx.HTTPError, ValueError):
+            pass
+        # 2) фолбэк: Wiktionary
+        hint = await _wiktionary_hint(client, word)
+        return hint, "wiktionary" if hint else ""
+
+
+@router.get("/hint")
+async def hint_for_word(word: str = Query(min_length=1, max_length=100)):
+    """Подсказка на английском для слова/фразы с лицевой стороны карточки."""
+    generated, source = await _dictionary_hint(word)
+    return {"hint": generated, "source": source or None}
+
+
 class CardPatch(BaseModel):
     front: str | None = None
     back: str | None = None
@@ -460,7 +541,11 @@ async def create_card(deck_id: int, payload: CardIn, session: AsyncSession = Dep
     deck = await session.get(Deck, deck_id)
     if deck is None:
         raise HTTPException(404, "Колода не найдена")
-    card = Card(deck_id=deck_id, front=payload.front.strip(), back=payload.back.strip(), hint=payload.hint.strip())
+    hint = payload.hint.strip()
+    if not hint:
+        # подсказка на английском из словаря, если пользователь не написал свою
+        hint, _source = await _dictionary_hint(payload.front)
+    card = Card(deck_id=deck_id, front=payload.front.strip(), back=payload.back.strip(), hint=hint)
     session.add(card)
     await session.commit()
     return {"id": card.id, "front": card.front, "back": card.back, "hint": card.hint, "state": "new"}

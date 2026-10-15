@@ -75,7 +75,7 @@ function openAddCard(onSaved) {
           <input class="input" id="mcBack" placeholder="устойчивый, стойкий" />
         </div>
         <div class="field">
-          <label class="field__label" for="mcHint">Подсказка (необязательно)</label>
+          <label class="field__label" for="mcHint">Подсказка <span class="faint" data-hint-state>(заполнится автоматически)</span></label>
           <input class="input" id="mcHint" placeholder="a resilient community" />
         </div>
       </div>`,
@@ -102,6 +102,32 @@ function openAddCard(onSaved) {
         },
       },
     ],
+    onMount(root) {
+      // Автоподсказка: как только введено слово — тянем пример на английском
+      const front = qs("#mcFront", root);
+      const hint = qs("#mcHint", root);
+      const state = qs("[data-hint-state]", root);
+      let timer = null;
+      let touched = false;
+      hint.addEventListener("input", () => (touched = true));
+      front.addEventListener("input", () => {
+        clearTimeout(timer);
+        const word = front.value.trim();
+        if (!word || touched) return;
+        state.textContent = "ищем…";
+        timer = setTimeout(async () => {
+          if (touched || front.value.trim() !== word) return;
+          try {
+            const { hint: generated } = await api.get(`/api/hint?word=${encodeURIComponent(word)}`);
+            if (touched || front.value.trim() !== word) return;
+            hint.value = generated || "";
+            state.textContent = generated ? "(из словаря)" : "(словарь не нашёл)";
+          } catch (e) {
+            state.textContent = "(недоступно)";
+          }
+        }, 550);
+      });
+    },
   });
 }
 
@@ -161,7 +187,7 @@ function openEditDeck(deck, onSaved) {
 
 async function load() {
   try {
-    const deck = await api.get(`/api/decks/${deckId}`);
+    let deck = await api.get(`/api/decks/${deckId}`);
     document.title = `${deck.name} — Lingua Flow`;
     const node = nodeFrom("tplDeckDetail");
     page.innerHTML = "";
