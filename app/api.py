@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+import os
 from datetime import date, datetime, timedelta
+from urllib.parse import parse_qsl
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -167,10 +172,79 @@ async def me(session: AsyncSession = Depends(get_session)):
     streak = await streak_info(session, user.id)
     return {
         "name": user.name,
+        "photo_url": user.photo_url,
         "daily_goal": user.daily_goal,
         "theme": user.theme,
         "due_total": int(due or 0),
         "done_today": int(done_today or 0),
+        "streak": streak["streak"],
+    }
+
+
+def _verify_init_data(init_data: str) -> dict | None:
+    """Проверка подписи Telegram Mini App (HMAC-SHA256, Bot API 6.0+)."""
+    bot_token = os.getenv("BOT_TOKEN", "").strip()
+    if not bot_token or not init_data:
+        return None
+    try:
+        pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+    except ValueError:
+        return None
+    received = pairs.pop("hash", "")
+    if not received:
+        return None
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    calculated = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calculated, received):
+        return None
+    try:
+        return json.loads(pairs.get("user", "{}") or "{}")
+    except json.JSONDecodeError:
+        return None
+
+
+class TgSyncIn(BaseModel):
+    init_data: str = Field(min_length=1, max_length=8192)
+
+
+@router.post("/tg-sync")
+async def tg_sync(payload: TgSyncIn, session: AsyncSession = Depends(get_session)):
+    """Синхронизация имени/фото из Telegram. Принимает только подписанный initData."""
+    tg_user = _verify_init_data(payload.init_data)
+    if not tg_user or not tg_user.get("id"):
+        raise HTTPException(403, "Недействительная подпись Telegram")
+
+    owner = os.getenv("OWNER_ID", "").strip()
+    if owner.isdigit() and int(owner) != int(tg_user["id"]):
+        raise HTTPException(403, "Доступ только для владельца")
+
+    user = await get_user(session)
+    user.telegram_id = int(tg_user["id"])
+    first = (tg_user.get("first_name") or "").strip()
+    last = (tg_user.get("last_name") or "").strip()
+    full = f"{first} {last}".strip()
+    if full:
+        user.name = full[:120]
+    photo = (tg_user.get("photo_url") or "").strip()
+    if photo:
+        user.photo_url = photo[:1024]
+    await session.commit()
+
+    today = utcnow().date()
+    due = await session.scalar(
+        select(func.count())
+        .select_from(Card)
+        .join(Deck)
+        .where(Deck.user_id == user.id, Card.due_at <= utcnow())
+    )
+    streak = await streak_info(session, user.id)
+    return {
+        "name": user.name,
+        "photo_url": user.photo_url,
+        "daily_goal": user.daily_goal,
+        "theme": user.theme,
+        "due_total": int(due or 0),
         "streak": streak["streak"],
     }
 

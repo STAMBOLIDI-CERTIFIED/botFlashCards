@@ -39,6 +39,20 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
+
+
+def _add_missing_columns(sync_conn) -> None:
+    """Лёгкая миграция: create_all не добавляет новые колонки в существующие таблицы."""
+    from sqlalchemy import inspect
+
+    inspector = inspect(sync_conn)
+    if "users" not in inspector.get_table_names():
+        return
+    cols = {c["name"] for c in inspector.get_columns("users")}
+    if "photo_url" not in cols:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN photo_url VARCHAR(1024)"))
+        log.info("Миграция: добавлена колонка users.photo_url")
 
 
 async def get_session():

@@ -29,6 +29,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(120), default="Ученик")
     telegram_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    photo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     daily_goal: Mapped[int] = mapped_column(Integer, default=30)
     theme: Mapped[str] = mapped_column(String(16), default="system")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

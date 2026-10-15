@@ -43,7 +43,13 @@ async def _maybe_start_bot() -> None:
     try:
         from aiogram import Bot, Dispatcher
         from aiogram.filters import CommandStart
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+        from aiogram.types import (
+            InlineKeyboardButton,
+            InlineKeyboardMarkup,
+            MenuButtonWebApp,
+            Message,
+            WebAppInfo,
+        )
     except ImportError:
         log.warning("BOT_TOKEN задан, но aiogram не установлен — бот не запущен.")
         return
@@ -52,6 +58,19 @@ async def _maybe_start_bot() -> None:
     allowed = _allowed_user_ids()
     bot = Bot(token)
     dp = Dispatcher()
+
+    # Кнопка мини-приложения рядом с полем ввода (MenuButtonWebApp)
+    if webapp_url:
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Запустить мини-приложение",
+                    web_app=WebAppInfo(url=webapp_url),
+                )
+            )
+            log.info("Кнопка меню (mini app) установлена.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Не удалось установить кнопку меню: %s", exc)
 
     @dp.message(CommandStart())
     async def start(message: Message) -> None:
