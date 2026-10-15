@@ -59,16 +59,33 @@ async def _maybe_start_bot() -> None:
     bot = Bot(token)
     dp = Dispatcher()
 
-    # Кнопка мини-приложения рядом с полем ввода (MenuButtonWebApp)
+    # Кнопка мини-приложения рядом с полем ввода — ТОЛЬКО для владельца.
+    # Остальным (и по умолчанию) — обычное меню команд, без Mini App.
     if webapp_url:
+        owner_id = os.getenv("OWNER_ID", "").strip()
         try:
+            from aiogram.types import MenuButtonCommands
+
             await bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(
-                    text="Запустить мини-приложение",
-                    web_app=WebAppInfo(url=webapp_url),
-                )
+                menu_button=MenuButtonCommands(text="Меню"),
             )
-            log.info("Кнопка меню (mini app) установлена.")
+            if owner_id.isdigit():
+                await bot.set_chat_menu_button(
+                    chat_id=int(owner_id),
+                    menu_button=MenuButtonWebApp(
+                        text="Запустить мини-приложение",
+                        web_app=WebAppInfo(url=webapp_url),
+                    ),
+                )
+                log.info("Кнопка меню (mini app) установлена только для %s.", owner_id)
+            else:
+                await bot.set_chat_menu_button(
+                    menu_button=MenuButtonWebApp(
+                        text="Запустить мини-приложение",
+                        web_app=WebAppInfo(url=webapp_url),
+                    ),
+                )
+                log.warning("OWNER_ID не задан — кнопка mini app показана всем.")
         except Exception as exc:  # noqa: BLE001
             log.warning("Не удалось установить кнопку меню: %s", exc)
 

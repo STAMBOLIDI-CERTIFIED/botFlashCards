@@ -70,21 +70,38 @@ function renderPhoto(url, ini) {
 
 async function fetchProfile() {
   const tg = window.Telegram?.WebApp;
-  // В Telegram отдаём подписанный initData — сервер проверит подпись и сохранит имя/фото
-  if (tg && tg.initData) {
-    try {
-      return await api.post("/api/tg-sync", { init_data: tg.initData });
-    } catch (e) {
-      /* подпись не прошла / бот не настроен — берём как есть */
-    }
-  }
-  return api.get("/api/me");
+  if (!tg || !tg.initData) return null; // обычный браузер — доступ закрыт
+  return api.post("/api/tg-sync", {});
+}
+
+function showGate(reason) {
+  if (document.getElementById("gate")) return;
+  const gate = document.createElement("div");
+  gate.id = "gate";
+  gate.className = "gate";
+  gate.innerHTML = `
+    <div class="gate__card rise">
+      <div class="gate__icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+      </div>
+      <h1 class="gate__title">Откройте в Telegram</h1>
+      <p class="gate__text">${reason}</p>
+      <a class="btn btn--primary" href="https://t.me/flash_cards_online_bot" target="_blank" rel="noopener">Открыть бота</a>
+    </div>`;
+  document.body.appendChild(gate);
+  document.documentElement.classList.add("is-locked");
 }
 
 async function boot() {
   bootTelegram();
   try {
     const me = await fetchProfile();
+    if (!me) {
+      showGate("Приложение доступно только внутри Telegram — откройте мини-приложение у бота.");
+      return;
+    }
     applyProfile(me);
     if (me.due_total > 0) {
       document.querySelectorAll("[data-nav-due]").forEach((b) => {
@@ -93,7 +110,12 @@ async function boot() {
       });
     }
   } catch (e) {
-    /* offline / first boot */
+    if (e.status === 401) {
+      showGate("Приложение доступно только внутри Telegram — откройте мини-приложение у бота.");
+    } else if (e.status === 403) {
+      showGate("Доступ к приложению ограничен его владельцем.");
+    }
+    /* offline / прочие ошибки — молча */
   }
 }
 

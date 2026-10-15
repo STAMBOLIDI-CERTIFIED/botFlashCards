@@ -1,10 +1,15 @@
 const DEFAULTS = { headers: { "Content-Type": "application/json" } };
 
+function tgHeaders() {
+  const init = window.Telegram?.WebApp?.initData;
+  return init ? { "X-Telegram-Init-Data": init } : {};
+}
+
 async function request(path, options = {}) {
   const res = await fetch(path, {
     ...DEFAULTS,
     ...options,
-    headers: { ...DEFAULTS.headers, ...(options.headers || {}) },
+    headers: { ...DEFAULTS.headers, ...tgHeaders(), ...(options.headers || {}) },
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
   let data = null;
@@ -15,7 +20,9 @@ async function request(path, options = {}) {
   }
   if (!res.ok) {
     const detail = data && data.detail ? data.detail : res.statusText;
-    throw new Error(typeof detail === "string" ? detail : "Ошибка запроса");
+    const err = new Error(typeof detail === "string" ? detail : "Ошибка запроса");
+    err.status = res.status;
+    throw err;
   }
   return data;
 }

@@ -4,10 +4,11 @@ import hashlib
 import hmac
 import json
 import os
+import time
 from datetime import date, datetime, timedelta
 from urllib.parse import parse_qsl
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,9 +17,55 @@ from .db import get_session
 from .models import Card, Deck, Review, StudySession, User, utcnow
 from .scheduling import GRADES, apply_review, human_interval, next_interval_days
 
-router = APIRouter(prefix="/api")
-
 MATURE_DAYS = 21
+INIT_DATA_MAX_AGE = 7 * 24 * 3600  # initData считается действительной 7 дней
+
+
+def _verify_init_data(init_data: str) -> dict | None:
+    """Проверка подписи Telegram Mini App (HMAC-SHA256, Bot API 6.0+)."""
+    bot_token = os.getenv("BOT_TOKEN", "").strip()
+    if not bot_token or not init_data:
+        return None
+    try:
+        pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+    except ValueError:
+        return None
+    received = pairs.pop("hash", "")
+    if not received:
+        return None
+    check_string = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    calculated = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calculated, received):
+        return None
+    auth_date = pairs.get("auth_date", "")
+    if auth_date.isdigit() and time.time() - int(auth_date) > INIT_DATA_MAX_AGE:
+        return None  # устаревшая подпись — не пропускаем
+    try:
+        return json.loads(pairs.get("user", "{}") or "{}")
+    except json.JSONDecodeError:
+        return None
+
+
+async def require_tg(request: Request) -> dict:
+    """Глубокая проверка доступа: каждый API-запрос должен нести валидный
+    initData от Telegram, а при заданном OWNER_ID — от владельца.
+
+    /api/health исключён (нужен для health-check'а платформы).
+    """
+    if request.url.path == "/api/health":
+        return {}
+    init_data = request.headers.get("X-Telegram-Init-Data", "").strip()
+    tg_user = _verify_init_data(init_data) if init_data else None
+    if not tg_user or not tg_user.get("id"):
+        raise HTTPException(401, "Откройте приложение в Telegram")
+    owner = os.getenv("OWNER_ID", "").strip()
+    if owner.isdigit() and int(owner) != int(tg_user["id"]):
+        raise HTTPException(403, "Доступ только для владельца")
+    return tg_user
+
+
+router = APIRouter(prefix="/api", dependencies=[Depends(require_tg)])
 
 
 def iso(dt: datetime | None) -> str | None:
@@ -181,43 +228,11 @@ async def me(session: AsyncSession = Depends(get_session)):
     }
 
 
-def _verify_init_data(init_data: str) -> dict | None:
-    """Проверка подписи Telegram Mini App (HMAC-SHA256, Bot API 6.0+)."""
-    bot_token = os.getenv("BOT_TOKEN", "").strip()
-    if not bot_token or not init_data:
-        return None
-    try:
-        pairs = dict(parse_qsl(init_data, keep_blank_values=True))
-    except ValueError:
-        return None
-    received = pairs.pop("hash", "")
-    if not received:
-        return None
-    check_string = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
-    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
-    calculated = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(calculated, received):
-        return None
-    try:
-        return json.loads(pairs.get("user", "{}") or "{}")
-    except json.JSONDecodeError:
-        return None
-
-
-class TgSyncIn(BaseModel):
-    init_data: str = Field(min_length=1, max_length=8192)
-
-
 @router.post("/tg-sync")
-async def tg_sync(payload: TgSyncIn, session: AsyncSession = Depends(get_session)):
-    """Синхронизация имени/фото из Telegram. Принимает только подписанный initData."""
-    tg_user = _verify_init_data(payload.init_data)
-    if not tg_user or not tg_user.get("id"):
+async def tg_sync(tg_user: dict = Depends(require_tg), session: AsyncSession = Depends(get_session)):
+    """Синхронизация имени/фото из Telegram. Подпись уже проверена require_tg."""
+    if not tg_user.get("id"):
         raise HTTPException(403, "Недействительная подпись Telegram")
-
-    owner = os.getenv("OWNER_ID", "").strip()
-    if owner.isdigit() and int(owner) != int(tg_user["id"]):
-        raise HTTPException(403, "Доступ только для владельца")
 
     user = await get_user(session)
     user.telegram_id = int(tg_user["id"])
