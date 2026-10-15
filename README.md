@@ -51,8 +51,10 @@ python -m app.seed
 | `DATABASE_URL`    | DSN PostgreSQL. Пусто → SQLite фолбэк в `data/` | —            |
 | `PORT`            | Порт HTTP-сервера                              | `8000`       |
 | `SEED_ON_START`   | `1` — создать демо-данные при старте           | `0`          |
-| `BOT_TOKEN`       | Токен Telegram-бота (aiogram). Пусто → бот off | —            |
-| `WEBAPP_URL`      | Публичный URL для Telegram Mini App            | —            |
+| `BOT_TOKEN`       | Токен Telegram-бота (aiogram). Пусто → бот off                     | —            |
+| `WEBAPP_URL`      | Публичный HTTPS-URL для кнопки Mini App                            | —            |
+| `OWNER_ID`        | Telegram ID владельца — бот отвечает только ему                    | —            |
+| `ALLOWED_USER_IDS`| Доп. ID через запятую (общий доступ бота)                          | —            |
 | `DATA_DIR`        | Каталог для SQLite/загрузок                    | `./data`     |
 
 ## Деплой на bothost

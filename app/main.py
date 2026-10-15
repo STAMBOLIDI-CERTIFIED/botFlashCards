@@ -18,6 +18,24 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 log = logging.getLogger("lingua")
 
 
+def _allowed_user_ids() -> set[int]:
+    """ID пользователей, которым разрешено общаться с ботом.
+
+    OWNER_ID — основной владелец; ALLOWED_USER_IDS — доп. список через запятую.
+    Пусто = доступ открыт для всех.
+    """
+    ids: set[int] = set()
+    for key in ("OWNER_ID", "ALLOWED_USER_IDS"):
+        raw = os.getenv(key, "").strip()
+        if not raw:
+            continue
+        for part in raw.replace(";", ",").split(","):
+            part = part.strip()
+            if part.isdigit():
+                ids.add(int(part))
+    return ids
+
+
 async def _maybe_start_bot() -> None:
     token = os.getenv("BOT_TOKEN", "").strip()
     if not token:
@@ -31,11 +49,14 @@ async def _maybe_start_bot() -> None:
         return
 
     webapp_url = os.getenv("WEBAPP_URL", "").strip()
+    allowed = _allowed_user_ids()
     bot = Bot(token)
     dp = Dispatcher()
 
     @dp.message(CommandStart())
     async def start(message: Message) -> None:
+        if allowed and message.from_user and message.from_user.id not in allowed:
+            return  # молча игнорируем всех, кроме владельца
         text = "Lingua Flow — карточки с интервальным повторением."
         reply_markup = None
         if webapp_url:
@@ -46,6 +67,15 @@ async def _maybe_start_bot() -> None:
                 ]
             )
         await message.answer(text, reply_markup=reply_markup)
+
+    if allowed:
+        log.info("Бот запущен в приватном режиме: доступ только для %s", sorted(allowed))
+    else:
+        log.info("Бот запущен: доступ открыт для всех пользователей.")
+    if webapp_url:
+        log.info("WEBAPP_URL: %s", webapp_url)
+    else:
+        log.warning("WEBAPP_URL не задан — кнопка Mini App не будет показана.")
 
     try:
         await dp.start_polling(bot)
