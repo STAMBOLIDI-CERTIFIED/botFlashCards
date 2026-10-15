@@ -12,7 +12,7 @@ function stateBadge(state) {
   return `<span class="badge badge--info">повторение</span>`;
 }
 
-function renderCards(list, onDeleted) {
+function renderCards(list, onChanged) {
   const host = qs("[data-card-list]");
   if (!list.length) {
     host.innerHTML = `
@@ -24,7 +24,7 @@ function renderCards(list, onDeleted) {
           <button class="btn btn--primary btn--sm" data-add-empty>Добавить карточку</button>
         </div>
       </div>`;
-    qs("[data-add-empty]", host)?.addEventListener("click", () => openAddCard(onDeleted));
+    qs("[data-add-empty]", host)?.addEventListener("click", () => openAddCard(onChanged));
     return;
   }
   host.innerHTML = list
@@ -37,12 +37,22 @@ function renderCards(list, onDeleted) {
       </div>
       ${stateBadge(c.state)}
       <span class="faint num" style="font-size: var(--fs-xs); width: 62px; text-align: right">${c.interval ? `${c.interval} д` : "—"}</span>
+      <button class="btn btn--ghost btn--icon" data-edit-card aria-label="Изменить карточку">
+        <svg class="icon icon--sm"><use href="#i-edit" /></svg>
+      </button>
       <button class="btn btn--ghost btn--icon" data-del-card aria-label="Удалить карточку">
         <svg class="icon icon--sm"><use href="#i-trash" /></svg>
       </button>
     </div>`
     )
     .join("");
+  host.querySelectorAll("[data-edit-card]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest("[data-card-id]");
+      const card = list.find((c) => String(c.id) === row.dataset.cardId);
+      if (card) openEditCard(card, onChanged);
+    });
+  });
   host.querySelectorAll("[data-del-card]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const row = btn.closest("[data-card-id]");
@@ -53,10 +63,39 @@ function renderCards(list, onDeleted) {
         onConfirm: async () => {
           await api.del(`/api/cards/${id}`);
           toast("Карточка удалена");
-          onDeleted();
+          onChanged();
         },
       });
     });
+  });
+}
+
+// Автоподсказка: тянем пример на английском, пока поле подсказки пустое
+// или заполнено автоматически. Ручной ввод не перетираем.
+function bindAutoHint(root, frontSel, hintSel) {
+  const front = qs(frontSel, root);
+  const hint = qs(hintSel, root);
+  const state = qs("[data-hint-state]", root);
+  if (!front || !hint || !state) return;
+  let timer = null;
+  let manual = Boolean(hint.value.trim()); // непустая при открытии = чужая, не трогаем
+  hint.addEventListener("input", () => (manual = Boolean(hint.value.trim())));
+  front.addEventListener("input", () => {
+    clearTimeout(timer);
+    const word = front.value.trim();
+    if (!word || manual) return;
+    state.textContent = "ищем…";
+    timer = setTimeout(async () => {
+      if (manual || front.value.trim() !== word) return;
+      try {
+        const { hint: generated } = await api.get(`/api/hint?word=${encodeURIComponent(word)}`);
+        if (manual || front.value.trim() !== word) return;
+        hint.value = generated || "";
+        state.textContent = generated ? "(из словаря)" : "(словарь не нашёл)";
+      } catch (e) {
+        state.textContent = "(недоступно)";
+      }
+    }, 550);
   });
 }
 
@@ -103,30 +142,55 @@ function openAddCard(onSaved) {
       },
     ],
     onMount(root) {
-      // Автоподсказка: как только введено слово — тянем пример на английском
-      const front = qs("#mcFront", root);
-      const hint = qs("#mcHint", root);
-      const state = qs("[data-hint-state]", root);
-      let timer = null;
-      let touched = false;
-      hint.addEventListener("input", () => (touched = true));
-      front.addEventListener("input", () => {
-        clearTimeout(timer);
-        const word = front.value.trim();
-        if (!word || touched) return;
-        state.textContent = "ищем…";
-        timer = setTimeout(async () => {
-          if (touched || front.value.trim() !== word) return;
-          try {
-            const { hint: generated } = await api.get(`/api/hint?word=${encodeURIComponent(word)}`);
-            if (touched || front.value.trim() !== word) return;
-            hint.value = generated || "";
-            state.textContent = generated ? "(из словаря)" : "(словарь не нашёл)";
-          } catch (e) {
-            state.textContent = "(недоступно)";
+      bindAutoHint(root, "#mcFront", "#mcHint");
+    },
+  });
+}
+
+function openEditCard(card, onSaved) {
+  openModal({
+    title: "Изменить карточку",
+    sub: "Лицевая сторона, ответ и подсказка",
+    body: `
+      <div class="stack">
+        <div class="field">
+          <label class="field__label" for="ecFront">Вопрос / слово</label>
+          <input class="input" id="ecFront" value="${esc(card.front)}" />
+        </div>
+        <div class="field">
+          <label class="field__label" for="ecBack">Ответ / перевод</label>
+          <input class="input" id="ecBack" value="${esc(card.back)}" />
+        </div>
+        <div class="field">
+          <label class="field__label" for="ecHint">Подсказка <span class="faint" data-hint-state>${card.hint ? "(ваша)" : "(заполнится автоматически)"}</span></label>
+          <input class="input" id="ecHint" value="${esc(card.hint || "")}" placeholder="a resilient community" />
+        </div>
+      </div>`,
+    actions: [
+      { label: "Отмена", variant: "btn--secondary", onClick: ({ close }) => close() },
+      {
+        label: "Сохранить",
+        variant: "btn--primary",
+        onClick: async ({ close, root }) => {
+          const front = qs("#ecFront", root).value.trim();
+          const back = qs("#ecBack", root).value.trim();
+          if (!front || !back) {
+            toast("Заполните вопрос и ответ", "error");
+            return;
           }
-        }, 550);
-      });
+          await api.patch(`/api/cards/${card.id}`, {
+            front,
+            back,
+            hint: qs("#ecHint", root).value.trim(),
+          });
+          close();
+          toast("Карточка изменена");
+          onSaved();
+        },
+      },
+    ],
+    onMount(root) {
+      bindAutoHint(root, "#ecFront", "#ecHint");
     },
   });
 }
