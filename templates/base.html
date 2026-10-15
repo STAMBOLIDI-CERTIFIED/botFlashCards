@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{% block title %}Lingua Flow{% endblock %}</title>
+    <meta name="description" content="Lingua Flow — карточки с интервальным повторением, календарь занятий и аналитика прогресса." />
+    <meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0c14" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/tokens.css" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/components.css" />
+    <link rel="stylesheet" href="/static/css/layout.css" />
+    <link rel="stylesheet" href="/static/css/pages.css" />
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("lf-theme") || "system";
+          var dark =
+            pref === "dark" ||
+            (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.themePref = pref;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    {% include "_icons.html" %}
+
+    <div class="app">
+      <aside class="sidebar">
+        <a class="sidebar__brand" href="/">
+          <span class="brand-mark"><svg viewBox="0 0 24 24"><use href="#i-logo" /></svg></span>
+          <span>
+            <span class="brand-name">Lingua Flow</span><br />
+            <span class="brand-tag">flashcards</span>
+          </span>
+        </a>
+
+        <nav class="sidebar__nav" aria-label="Основная навигация">
+          {% for item in nav %}
+          <a
+            class="nav-item {% if active == item.id %}is-active{% endif %}"
+            href="{{ item.href }}"
+            {% if active == item.id %}aria-current="page"{% endif %}
+          >
+            <svg class="icon"><use href="#i-{{ item.icon }}" /></svg>
+            <span>{{ item.label }}</span>
+            {% if item.id == 'study' %}
+            <span class="badge badge--accent nav-item__badge" data-nav-due hidden>0</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </nav>
+
+        <div class="sidebar__foot">
+          <a class="sidebar__user" href="/settings">
+            <span class="avatar" data-user-initials>У</span>
+            <span style="text-align: left; min-width: 0">
+              <span class="sidebar__user-name truncate" data-user-name>Ученик</span><br />
+              <span class="sidebar__user-goal" data-user-goal>Цель: 30 карточек</span>
+            </span>
+          </a>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="topbar" id="topbar">
+          <a class="topbar__brand" href="/">
+            <span class="brand-mark"><svg viewBox="0 0 24 24"><use href="#i-logo" /></svg></span>
+          </a>
+          <div class="topbar__titles">
+            <div class="topbar__title">{% block page_title %}Lingua Flow{% endblock %}</div>
+            <div class="topbar__sub">{% block page_sub %}{% endblock %}</div>
+          </div>
+          <div class="topbar__actions">
+            <span class="streak-chip" id="streakChip" title="Серия занятий" hidden>
+              <svg class="icon"><use href="#i-flame" /></svg>
+              <span data-streak-count>0</span>
+            </span>
+
+            <div class="segmented segmented--icon" id="themeToggle" role="group" aria-label="Тема оформления">
+              <button class="segmented__btn" data-theme-set="system" title="Системная тема" aria-label="Системная тема">
+                <svg class="icon icon--sm"><use href="#i-monitor" /></svg>
+              </button>
+              <button class="segmented__btn" data-theme-set="light" title="Светлая тема" aria-label="Светлая тема">
+                <svg class="icon icon--sm"><use href="#i-sun" /></svg>
+              </button>
+              <button class="segmented__btn" data-theme-set="dark" title="Тёмная тема" aria-label="Тёмная тема">
+                <svg class="icon icon--sm"><use href="#i-moon" /></svg>
+              </button>
+            </div>
+
+            <div class="menu-root">
+              <button class="avatar" id="avatarBtn" data-user-initials aria-haspopup="true" aria-expanded="false">У</button>
+              <div class="menu" id="avatarMenu" role="menu">
+                <div style="padding: 8px 10px 10px">
+                  <div style="font-weight: 700; font-size: var(--fs-sm)" data-user-name>Ученик</div>
+                  <div style="font-size: var(--fs-xs); color: var(--text-3)" data-user-goal>Цель: 30 карточек</div>
+                </div>
+                <div class="menu__sep"></div>
+                <a class="menu__item" href="/settings" role="menuitem">
+                  <svg class="icon icon--sm"><use href="#i-settings" /></svg> Настройки
+                </a>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="content" id="content">
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Мобильная навигация">
+      {% for item in nav %}
+      <a
+        class="bottom-nav__item {% if item.id == 'study' %}bottom-nav__item--fab{% endif %} {% if active == item.id %}is-active{% endif %}"
+        href="{{ item.href }}"
+        {% if active == item.id %}aria-current="page"{% endif %}
+      >
+        {% if item.id == 'study' %}
+        <span class="fab-icon"><svg class="icon icon--sm"><use href="#i-cards" /></svg></span>
+        {% else %}
+        <svg class="icon"><use href="#i-{{ item.icon }}" /></svg>
+        {% endif %}
+        <span>{{ item.label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div class="chart-tooltip" id="chartTooltip" role="tooltip"></div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="module" src="/static/js/app.js"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

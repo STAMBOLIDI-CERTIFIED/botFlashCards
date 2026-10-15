@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Обзор — Lingua Flow{% endblock %}
+{% block page_title %}Обзор{% endblock %}
+{% block page_sub %}Ваш прогресс в одном месте{% endblock %}
+
+{% block content %}
+<div class="stack" id="dashboardPage">
+  <div class="skeleton" style="height: 92px; border-radius: var(--r-lg)"></div>
+
+  <div class="grid grid--stats">
+    <div class="skeleton" style="height: 132px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 132px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 132px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 132px; border-radius: var(--r-lg)"></div>
+  </div>
+
+  <div class="grid grid--2">
+    <div class="skeleton" style="height: 320px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 320px; border-radius: var(--r-lg)"></div>
+  </div>
+
+  <div class="grid grid--decks">
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/dashboard.js"></script>
+{% endblock %}

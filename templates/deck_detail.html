@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Колода — Lingua Flow{% endblock %}
+{% block page_title %}Колода{% endblock %}
+{% block page_sub %}Карточки и расписание повторений{% endblock %}
+
+{% block content %}
+<div class="stack" id="deckPage" data-deck-id="{{ deck_id }}">
+  <div class="skeleton" style="height: 120px; border-radius: var(--r-lg)"></div>
+  <div class="skeleton" style="height: 240px; border-radius: var(--r-lg)"></div>
+</div>
+
+<template id="tplDeckDetail">
+  <div>
+    <div class="card deck-hero">
+      <span class="deck-hero__dot"></span>
+      <div style="flex: 1; min-width: 0">
+        <div class="row row--between row--wrap" style="align-items: flex-start">
+          <div style="min-width: 0">
+            <h1 style="font-size: var(--fs-2xl)" data-name></h1>
+            <p class="muted" style="margin-top: 6px; font-size: var(--fs-sm)" data-desc></p>
+          </div>
+          <div class="row" style="gap: var(--sp-2)">
+            <button class="btn btn--secondary btn--sm" data-edit-deck>
+              <svg class="icon icon--sm"><use href="#i-edit" /></svg> Изменить
+            </button>
+            <button class="btn btn--danger btn--sm" data-delete-deck>
+              <svg class="icon icon--sm"><use href="#i-trash" /></svg> Удалить
+            </button>
+          </div>
+        </div>
+        <div class="deck-hero__meta">
+          <div><b data-cards>0</b><span>карточек</span></div>
+          <div><b data-due>0</b><span>к повторению</span></div>
+          <div><b data-mature>0</b><span>выучено</span></div>
+          <div><b data-new>0</b><span>новых</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <section class="card">
+        <div class="card__head" style="padding: var(--sp-5) var(--sp-5) 0">
+          <div>
+            <div class="card__title">Карточки</div>
+            <div class="card__sub"><span data-total>0</span> всего</div>
+          </div>
+          <button class="btn btn--soft btn--sm" data-add-card>
+            <svg class="icon icon--sm"><use href="#i-plus" /></svg> Добавить
+          </button>
+        </div>
+        <div data-card-list style="margin-top: var(--sp-2)"></div>
+      </section>
+
+      <div class="stack">
+        <section class="card card--pad">
+          <div class="card__title" style="margin-bottom: var(--sp-3)">Быстрое действие</div>
+          <p class="muted" style="font-size: var(--fs-sm); margin-bottom: var(--sp-4)">
+            Повторите карточки, которые подошли по расписанию.
+          </p>
+          <a class="btn btn--primary btn--block" data-study-link href="/study">
+            <svg class="icon icon--sm"><use href="#i-play" /></svg>
+            Начать повторение
+          </a>
+        </section>
+        <section class="card card--pad">
+          <div class="card__title" style="margin-bottom: var(--sp-2)">Освоение</div>
+          <div class="deck-card__mastery" style="margin-top: var(--sp-3)">
+            <div class="progress" style="height: 8px"><span class="progress__fill" data-mastery-fill></span></div>
+            <span class="badge badge--accent" data-mastery-label>0%</span>
+          </div>
+          <div class="chart-legend" style="margin-top: var(--sp-4)">
+            <span><i style="background: var(--surface-3)"></i> Новые</span>
+            <span><i style="background: var(--warning)"></i> Учебные</span>
+            <span><i style="background: var(--success)"></i> Выученные</span>
+          </div>
+          <div class="stack-bar" style="margin-top: 10px" data-mastery-bar>
+            <span style="background: var(--surface-3)"></span>
+            <span style="background: var(--warning)"></span>
+            <span style="background: var(--success)"></span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/deck_detail.js"></script>
+{% endblock %}

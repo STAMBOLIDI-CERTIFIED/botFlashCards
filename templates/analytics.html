@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Аналитика — Lingua Flow{% endblock %}
+{% block page_title %}Аналитика{% endblock %}
+{% block page_sub %}Динамика повторений и освоение колод{% endblock %}
+
+{% block content %}
+<div class="stack" id="analyticsPage">
+  <div class="skeleton" style="height: 100px; border-radius: var(--r-lg)"></div>
+  <div class="skeleton" style="height: 300px; border-radius: var(--r-lg)"></div>
+  <div class="grid grid--2">
+    <div class="skeleton" style="height: 260px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 260px; border-radius: var(--r-lg)"></div>
+  </div>
+</div>
+
+<template id="tplAnalytics">
+  <div class="stack">
+    <div class="row row--between row--wrap rise">
+      <div class="segmented" id="anRange" role="group" aria-label="Период">
+        <button class="segmented__btn" data-days="30">30 дней</button>
+        <button class="segmented__btn is-active" data-days="90">90 дней</button>
+        <button class="segmented__btn" data-days="365">Год</button>
+      </div>
+      <div class="row" style="gap: var(--sp-2)" id="anSummary"></div>
+    </div>
+
+    <div class="grid grid--stats rise rise-1" id="anStats"></div>
+
+    <section class="card chart-card rise rise-2">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Повторения и точность</div>
+          <div class="card__sub">Динамика по дням</div>
+        </div>
+        <div class="chart-legend" style="margin: 0">
+          <span><i style="background: var(--accent)"></i> Повторения</span>
+          <span><i style="background: var(--success)"></i> Точность</span>
+        </div>
+      </div>
+      <div class="chart-card__body" id="anMainChart"></div>
+    </section>
+
+    <div class="grid grid--2 rise rise-3">
+      <section class="card chart-card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Оценки</div>
+            <div class="card__sub">Распределение ответов</div>
+          </div>
+        </div>
+        <div id="anGrades"></div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Время по дням недели</div>
+            <div class="card__sub">Минуты обучения</div>
+          </div>
+        </div>
+        <div class="chart-card__body" id="anWeekday"></div>
+      </section>
+    </div>
+
+    <div class="grid grid--2 rise rise-4">
+      <section class="card chart-card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Освоение колод</div>
+            <div class="card__sub">Новые · учебные · выученные</div>
+          </div>
+        </div>
+        <div id="anMastery"></div>
+        <div class="chart-legend">
+          <span><i style="background: var(--surface-3)"></i> Новые</span>
+          <span><i style="background: var(--warning)"></i> Учебные</span>
+          <span><i style="background: var(--success)"></i> Выученные</span>
+        </div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Регулярность</div>
+            <div class="card__sub">Последние 12 недель</div>
+          </div>
+        </div>
+        <div class="chart-card__body heatmap-wrap" id="anHeatmap"></div>
+        <div class="cal-legend">
+          <span>меньше</span>
+          <i style="background: var(--heat-0)"></i>
+          <i style="background: var(--heat-1)"></i>
+          <i style="background: var(--heat-2)"></i>
+          <i style="background: var(--heat-3)"></i>
+          <i style="background: var(--heat-4)"></i>
+          <span>больше</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/analytics.js"></script>
+{% endblock %}

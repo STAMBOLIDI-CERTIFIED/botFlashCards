@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Настройки — Lingua Flow{% endblock %}
+{% block page_title %}Настройки{% endblock %}
+{% block page_sub %}Профиль, цель и оформление{% endblock %}
+
+{% block content %}
+<div class="settings-grid" id="settingsPage">
+  <section class="card setting-row rise">
+    <div>
+      <div class="setting-row__label">Имя</div>
+      <div class="setting-row__desc">Как вас приветствовать на главной</div>
+    </div>
+    <div class="setting-row__control row" style="gap: var(--sp-2)">
+      <input class="input" id="setName" style="width: 220px" maxlength="120" placeholder="Ваше имя" />
+      <button class="btn btn--secondary btn--sm" id="saveName">Сохранить</button>
+    </div>
+  </section>
+
+  <section class="card setting-row rise rise-1">
+    <div>
+      <div class="setting-row__label">Дневная цель</div>
+      <div class="setting-row__desc">Сколько карточек повторять каждый день</div>
+    </div>
+    <div class="setting-row__control row" style="gap: var(--sp-4)">
+      <input class="range" type="range" id="setGoal" min="5" max="120" step="5" />
+      <span class="goal-value" id="setGoalValue">30 / день</span>
+    </div>
+  </section>
+
+  <section class="card setting-row rise rise-2">
+    <div>
+      <div class="setting-row__label">Тема оформления</div>
+      <div class="setting-row__desc">Светлая, тёмная или как в системе</div>
+    </div>
+    <div class="setting-row__control">
+      <div class="segmented" id="setTheme" role="group" aria-label="Тема">
+        <button class="segmented__btn" data-theme-set="system">
+          <svg class="icon icon--sm"><use href="#i-monitor" /></svg> Система
+        </button>
+        <button class="segmented__btn" data-theme-set="light">
+          <svg class="icon icon--sm"><use href="#i-sun" /></svg> Светлая
+        </button>
+        <button class="segmented__btn" data-theme-set="dark">
+          <svg class="icon icon--sm"><use href="#i-moon" /></svg> Тёмная
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card card--pad rise rise-3">
+    <div class="card__title" style="margin-bottom: 4px">О Lingua Flow</div>
+    <p class="muted" style="font-size: var(--fs-sm)">
+      Интервальные повторения, календарь занятий и аналитика прогресса. Данные хранятся в PostgreSQL.
+    </p>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/settings.js"></script>
+{% endblock %}

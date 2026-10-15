@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Коллоды — Lingua Flow{% endblock %}
+{% block page_title %}Коллоды{% endblock %}
+{% block page_sub %}Наборы карточек для изучения{% endblock %}
+
+{% block content %}
+<div class="stack" id="decksPage">
+  <div class="page-head" style="margin-bottom: 0">
+    <div class="page-head__text">
+      <h1 class="sr-only">Коллоды</h1>
+    </div>
+    <div class="page-head__actions">
+      <button class="btn btn--primary" id="createDeckBtn">
+        <svg class="icon icon--sm"><use href="#i-plus" /></svg>
+        Создать колоду
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid--decks" id="decksGrid">
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 168px; border-radius: var(--r-lg)"></div>
+  </div>
+</div>
+
+<template id="tplDeckCard">
+  <a class="card card--hover deck-card" href="#">
+    <span class="deck-card__arrow"><svg class="icon icon--sm"><use href="#i-arrow-right" /></svg></span>
+    <div class="deck-card__top">
+      <span class="deck-card__dot"></span>
+      <span class="deck-card__name truncate"></span>
+    </div>
+    <div class="deck-card__desc clamp-2"></div>
+    <div class="deck-card__stats">
+      <span><b data-cards>0</b> карт.</span>
+      <span><b data-new>0</b> новых</span>
+      <span><b data-mature>0</b> выучено</span>
+    </div>
+    <div class="deck-card__mastery">
+      <div class="progress"><span class="progress__fill"></span></div>
+      <span class="badge badge--accent" data-due-badge>0 к повторению</span>
+    </div>
+  </a>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/decks.js"></script>
+{% endblock %}

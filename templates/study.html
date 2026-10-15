@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Тренировка — Lingua Flow{% endblock %}
+{% block page_title %}Тренировка{% endblock %}
+{% block page_sub %}Интервальное повторение карточек{% endblock %}
+
+{% block content %}
+<div id="studyPage">
+  <div class="study-shell">
+    <div class="skeleton" style="height: 40px"></div>
+    <div class="skeleton" style="flex: 1; min-height: 340px; border-radius: var(--r-2xl)"></div>
+    <div class="skeleton" style="height: 58px; border-radius: var(--r-md)"></div>
+  </div>
+</div>
+
+<template id="tplStudySession">
+  <div class="study-shell">
+    <div class="study-top">
+      <button class="btn btn--ghost btn--icon" data-exit title="Завершить" aria-label="Завершить тренировку">
+        <svg class="icon"><use href="#i-x" /></svg>
+      </button>
+      <div class="study-top__meta">
+        <div class="study-top__title truncate" data-deck-name>Все колоды</div>
+        <div class="study-top__count">
+          <span data-current>1</span> / <span data-total>1</span> · осталось <span data-remaining>0</span>
+        </div>
+      </div>
+      <span class="badge badge--accent" data-today-badge>0 сегодня</span>
+    </div>
+
+    <div class="study-progress"><span class="study-progress__fill" data-progress></span></div>
+
+    <div class="flashcard-wrap">
+      <button class="flashcard" data-card aria-label="Перевернуть карточку">
+        <div class="flashcard__face flashcard__front">
+          <div class="flashcard__label" data-front-label>Вопрос</div>
+          <div class="flashcard__front-text" data-front></div>
+          <div class="flashcard__flip-hint">
+            <svg class="icon icon--sm"><use href="#i-rotate" /></svg>
+            Нажмите или клавишу <kbd>Пробел</kbd>
+          </div>
+        </div>
+        <div class="flashcard__face flashcard__back">
+          <div class="flashcard__label">Ответ</div>
+          <div class="flashcard__back-text" data-back></div>
+          <div class="flashcard__hint" data-hint></div>
+        </div>
+      </button>
+    </div>
+
+    <div class="grades is-hidden" data-grades>
+      <button class="grade-btn grade-btn--0" data-grade="0">Снова<small>10 мин</small></button>
+      <button class="grade-btn grade-btn--1" data-grade="1">Трудно<small>1 д</small></button>
+      <button class="grade-btn grade-btn--2" data-grade="2">Хорошо<small>3 д</small></button>
+      <button class="grade-btn grade-btn--3" data-grade="3">Легко<small>7 д</small></button>
+    </div>
+    <div class="study-hint" data-study-hint>Нажмите на карточку, чтобы увидеть ответ</div>
+  </div>
+</template>
+
+<template id="tplStudyEmpty">
+  <div class="study-shell">
+    <div class="card">
+      <div class="empty">
+        <div class="empty__art"><svg class="icon"><use href="#i-check-circle" /></svg></div>
+        <div class="empty__title">Всё повторено</div>
+        <p class="empty__text">
+          На сегодня карточек к повторению не осталось. Возвращайтесь позже или добавьте новые карточки.
+        </p>
+        <div class="empty__actions">
+          <a class="btn btn--primary" href="/decks">Коллоды</a>
+          <a class="btn btn--secondary" href="/">На обзор</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tplStudyDone">
+  <div class="study-shell">
+    <div class="card">
+      <div class="study-done">
+        <div class="study-done__badge"><svg class="icon icon--lg"><use href="#i-check" /></svg></div>
+        <div>
+          <div class="empty__title">Тренировка завершена</div>
+          <p class="empty__text" style="margin: 6px auto 0">Отличная работа — карточки запланированы на будущее.</p>
+        </div>
+        <div class="study-done__stats">
+          <div><b data-done-reviews>0</b><span>карточек</span></div>
+          <div><b data-done-accuracy>0%</b><span>точность</span></div>
+          <div><b data-done-time>0м</b><span>время</span></div>
+        </div>
+        <div class="empty__actions">
+          <button class="btn btn--primary" data-again>Ещё раз</button>
+          <a class="btn btn--secondary" href="/">На обзор</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/study.js"></script>
+{% endblock %}

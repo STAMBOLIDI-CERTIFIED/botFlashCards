@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Календарь — Lingua Flow{% endblock %}
+{% block page_title %}Календарь{% endblock %}
+{% block page_sub %}Активность занятий по дням{% endblock %}
+
+{% block content %}
+<div class="stack" id="calendarPage">
+  <div class="skeleton" style="height: 56px; border-radius: var(--r-lg)"></div>
+  <div class="cal-layout">
+    <div class="skeleton" style="height: 480px; border-radius: var(--r-lg)"></div>
+    <div class="skeleton" style="height: 480px; border-radius: var(--r-lg)"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/static/js/pages/calendar.js"></script>
+{% endblock %}
